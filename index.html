@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blackout Protocol: Mr. Robot Edition</title>
+  <style>
+    body {
+      background-color: black;
+      color: #00FF00;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+      text-align: left;
+      overflow-x: hidden;
+    }
+    h1 {
+      color: #00FF00;
+      text-shadow: 0 0 10px #00FF00;
+      margin-bottom: 20px;
+    }
+    #intro, #story, #result {
+      font-size: 1.2em;
+      max-width: 800px;
+      margin-bottom: 20px;
+      white-space: pre-line;
+      animation: fadeIn 1s ease-in-out;
+    }
+    #options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .option {
+      background-color: transparent;
+      border: 1px solid #00FF00;
+      color: #00FF00;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+      font-size: 1em;
+    }
+    .option:hover {
+      background-color: #00FF00;
+      color: black;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .blinking {
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Blackout Protocol: Mr. Robot Edition</h1>
+  <div id="intro">
+    >>> fsociety transmission incoming...
+
+    You are <b>Elliot Gray</b>, a hacker recruited by fsociety to stop E Corp's blackout. 
+    Your mission: Infiltrate their systems before midnight.
+  </div>
+  <button class="option" onclick="startGame()">Start Mission</button>
+
+  <div id="lives" style="margin-bottom: 10px; font-size: 1em;"></div>
+  <div id="story" style="display: none;"></div>
+  <div id="options"></div>
+  <div id="result"></div>
+  <button id="restartBtn" class="option" style="display: none;" onclick="restartGame()">Restart Mission</button>
+  <button id="homeBtn" class="option" style="display: none;" onclick="goToHome()">Back to Home</button>
+    
+  <script>
+    // Sound generation functions
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playTypingSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800 + Math.random() * 400, audioContext.currentTime);
+      oscillator.type = 'sawtooth';
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, audioContext.currentTime);
+      filter.Q.setValueAtTime(3, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.05);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.05);
+    }
+    
+    function playClickSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.08);
+      oscillator.type = 'sawtooth';
+      
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(600, audioContext.currentTime);
+      filter.Q.setValueAtTime(3, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.08);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.08);
+    }
+    
+    function playSuccessSound() {
+      const oscillator1 = audioContext.createOscillator();
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      
+      oscillator1.connect(filter);
+      oscillator2.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator1.frequency.setValueAtTime(220, audioContext.currentTime);
+      oscillator1.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.3);
+      oscillator1.type = 'triangle';
+      
+      oscillator2.frequency.setValueAtTime(110, audioContext.currentTime);
+      oscillator2.frequency.exponentialRampToValueAtTime(220, audioContext.currentTime + 0.3);
+      oscillator2.type = 'sawtooth';
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, audioContext.currentTime);
+      filter.Q.setValueAtTime(1, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+      
+      oscillator1.start();
+      oscillator2.start();
+      oscillator1.stop(audioContext.currentTime + 0.4);
+      oscillator2.stop(audioContext.currentTime + 0.4);
+    }
+    
+    function playFailSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(110, audioContext.currentTime + 0.5);
+      oscillator.type = 'sawtooth';
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(500, audioContext.currentTime);
+      filter.Q.setValueAtTime(8, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+    
+    function playHoverSound() {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+      
+      oscillator.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(500, audioContext.currentTime);
+      oscillator.type = 'triangle';
+      
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(400, audioContext.currentTime);
+      filter.Q.setValueAtTime(2, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.03);
+      
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.03);
+    }
+
+    const storyFlow = {
+      start: {
+        text: "[>>>] You receive a strange signal on your laptop. What do you want to do?",
+        options: [
+          { text: "Follow where it came from", next: "tracePath", correct: true },
+          { text: "Try to decode the message right away", next: "failDecode", correct: false },
+          { text: "Connect directly to the signal", next: "failDirectConnect", correct: false },
+          { text: "Send a reply to see who responds", next: "fakeLeadFail", correct: false }
+        ]
+      },
+      tracePath: {
+        text: "[>>>] You find a secure computer system. What's your plan to get in?",
+        options: [
+          { text: "Use a known login bug", next: "exploitSuccess", correct: true },
+          { text: "Try cracking passwords with a big list", next: "failBruteForce", correct: false },
+          { text: "Fake your identity on the network", next: "failSpoofing", correct: false },
+          { text: "Wait for someone to login and piggyback", next: "timeoutFail", correct: false }
+        ]
+      },
+      exploitSuccess: {
+        text: "[✓] You're in! But security is watching. What now?",
+        options: [
+          { text: "Scan for open ports", next: "portScan", correct: true },
+          { text: "Check logs for clues", next: "failLogCheck", correct: false },
+          { text: "Attempt to escalate the privileges", next: "failAggressive", correct: false },
+          { text: "Pretend to be a harmless script", next: "divertSuccess", correct: true }
+        ]
+      },
+      portScan: {
+        text: "[>>>] You find a weird app running. What now?",
+        options: [
+          { text: "Try logging in with a fake user", next: "spoofToken", correct: true },
+          { text: "Pretend to be admin", next: "failAdminSpoof", correct: false },
+          { text: "Send random data to it", next: "failRandomData", correct: false },
+          { text: "Run a diagnostic scan to understand it", next: "failDiagnostic", correct: false }
+        ]
+      },
+      spoofToken: {
+        text: "[✓] You got in, but with limited powers. Next move?",
+        options: [
+          { text: "Sneak past firewall rules", next: "firewallBypass", correct: true },
+          { text: "Use a crashing trick", next: "failCrashAttempt", correct: false },
+          { text: "Trick someone for password", next: "failSocialEngineer", correct: false },
+          { text: "Send repeated login attempts with different IDs", next: "failLoginSpam", correct: false }
+        ]
+      },
+      firewallBypass: {
+        text: "[>>>] You're past the firewall. Keep your access alive:",
+        options: [
+          { text: "Plant a secret entrance", next: "plantBackdoor", correct: true },
+          { text: "Hide in secret messages", next: "failSteganography", correct: false },
+          { text: "Change firewall settings", next: "failFirewallChange", correct: false },
+          { text: "Switch between backup IPs", next: "failIPSwitch", correct: false }
+        ]
+      },
+      plantBackdoor: {
+        text: "[✓] Backdoor planted. But system scan is starting. Move quick:",
+        options: [
+          { text: "Jump deeper into the network", next: "networkEntry", correct: true },
+          { text: "Wait and hide", next: "failWait", correct: false },
+          { text: "Trigger a fake system update", next: "divertSuccess", correct: true }
+        ]
+      },
+      networkEntry: {
+        text: "[>>>] You're in the core network. But traps are set. What's your plan?",
+        options: [
+          { text: "Deploy stealth malware", next: "malwarePath", correct: true },
+          { text: "Copy internal traffic patterns", next: "failAdminSignal", correct: false },
+          { text: "Flood services with requests", next: "failOverload", correct: false },
+          { text: "Quietly check services", next: "failPing", correct: false }
+        ]
+      },
+      malwarePath: {
+        text: "[✓] Malware planted. Now find the control center:",
+        options: [
+          { text: "Check hidden system interfaces", next: "hiddenNode", correct: true },
+          { text: "Scan all network addresses", next: "failAddressScan", correct: false },
+          { text: "Follow network path labels", next: "failPhysicalTrace", correct: false },
+          { text: "Ask network nodes carefully", next: "failNetworkAsk", correct: false }
+        ]
+      },
+      hiddenNode: {
+        text: "[>>>] Found the core computer. It's locked. How to open it?",
+        options: [
+          { text: "Run decryption sequence", next: "backdoorAccess", correct: true },
+          { text: "Try timing-based attack", next: "failPasswordGuess", correct: false },
+          { text: "Check UI for weaknesses", next: "failTimingAttack", correct: false },
+          { text: "Try common passkey patterns", next: "failInterfacePattern", correct: false }
+        ]
+      },
+      backdoorAccess: {
+        text: "[✓] Partial access unlocked. Now search for the blackout system:",
+        options: [
+          { text: "Look for power control programs", next: "locateProtocol", correct: true },
+          { text: "Watch for power usage", next: "failPowerMonitor", correct: false },
+          { text: "Search keywords like 'shutdown'", next: "failKeywordSearch", correct: false }
+        ]
+      },
+      locateProtocol: {
+        text: "[>>>] Found the protocol. It has strong locks. What now?",
+        options: [
+          { text: "Break it with smart decoding", next: "decryptionSequence", correct: true },
+          { text: "Try to catch the password live", next: "failPasswordSniff", correct: false },
+          { text: "Trigger an error message and read it", next: "failErrorTrigger", correct: false }
+        ]
+      },
+      decryptionSequence: {
+        text: "[>>>] One lock broken. Another harder one appears. Keep going:",
+        options: [
+          { text: "Use advanced decoding", next: "quantumAlgorithm", correct: true },
+          { text: "Wait and see if it changes", next: "failWaitForChange", correct: false },
+          { text: "Compare it to past log files", next: "failLogComparison", correct: false }
+        ]
+      },
+      quantumAlgorithm: {
+        text: "[✓] Almost there! One last security lock: a logic puzzle. What do you do?",
+        options: [
+          { text: "Solve puzzle step-by-step", next: "puzzleSolve", correct: true },
+          { text: "Try automated solver", next: "failAutoTool", correct: false },
+          { text: "Watch system responses", next: "failRandomAttempt", correct: false },
+          { text: "Try random combinations", next: "failRandomAttempt", correct: false }
+        ]
+      },
+      puzzleSolve: {
+        text: "[✓] Puzzle solved. Protocol ready to be stopped. Final choice:",
+        options: [
+          { text: "Initiate shutdown protocol immediately", next: "shutdownProtocol", correct: true },
+          { text: "Schedule shutdown for safer timing", next: "failDelay", correct: false },
+          { text: "Suspend protocol to analyze further", next: "failDelay", correct: false },
+          { text: "Exit system and monitor for anomalies", next: "failAbandon", correct: false }
+        ]
+      },
+      shutdownProtocol: {
+        text: "[✓] BLACKOUT PROTOCOL DISABLED. E Corp systems shutting down safely. City saved.",
+        options: []
+      },
+      // Failure scenarios (unchanged)
+      failDecode: { text: "[✖] The message was encrypted with quantum-level security. Your attempts triggered an alert. Security is coming.", options: [] },
+      failDirectConnect: { text: "[✖] Direct connection attempt detected! They've traced your IP. Dark Army operatives are en route to your location.", options: [] },
+      fakeLeadFail: { text: "[✖] It was a honeypot! Your reply gave away your location. E Corp security has your identity now.", options: [] },
+      failBruteForce: { text: "[✖] Password cracking attempts detected. System locked you out and alerted security. Too noisy!", options: [] },
+      failSpoofing: { text: "[✖] Your spoofed identity didn't match network behavior patterns. AI security flagged you immediately.", options: [] },
+      timeoutFail: { text: "[✖] You waited too long. The system performed a routine security sweep and found your connection.", options: [] },
+      failLogCheck: { text: "[✖] While checking logs, you accidentally left traces. System admin noticed unusual activity.", options: [] },
+      failAggressive: { text: "[✖] Aggressive takeover attempt triggered the intrusion prevention system. All your access was revoked.", options: [] },
+      failAdminSpoof: { text: "[✖] Admin credentials require biometric verification. Your spoofing failed and triggered alarms.", options: [] },
+      failRandomData: { text: "[✖] Random data injection caused a service crash. Incident response team is investigating.", options: [] },
+      failDiagnostic: { text: "[✖] Diagnostic scan was too resource-intensive. System flagged it as a potential attack.", options: [] },
+      failCrashAttempt: { text: "[✖] Your crash attempt failed - the service had automatic restart protocols. Now they're looking for you.", options: [] },
+      failSocialEngineer: { text: "[✖] The system admin you tried to trick was actually a honeypot AI. You've been reported.", options: [] },
+      failLoginSpam: { text: "[✖] Multiple login attempts from the same origin triggered the rate limiter. Your IP is now blacklisted.", options: [] },
+      failSteganography: { text: "[✖] Your hidden messages were detected by the anomaly scanner. They're now analyzing your patterns.", options: [] },
+      failFirewallChange: { text: "[✖] Attempting to modify firewall rules without proper credentials triggered a security lockdown.", options: [] },
+      failIPSwitch: { text: "[✖] Rapid IP switching was detected as suspicious behavior. All your connections were terminated.", options: [] },
+      failWait: { text: "[✖] While waiting, the system completed its scan and found your backdoor. Access revoked.", options: [] },
+      failAdminSignal: { text: "[✖] Admin signals use quantum-encrypted channels. Your attempt was immediately detected.", options: [] },
+      failOverload: { text: "[✖] The system has automatic scaling. Your overload attempt just spawned more security instances.", options: [] },
+      failPing: { text: "[✖] Silent ping sweep detected by network anomaly detector. Your location is being traced.", options: [] },
+      failAddressScan: { text: "[✖] Scanning every address took too long. The system noticed unusual traffic patterns.", options: [] },
+      failPhysicalTrace: { text: "[✖] In a virtual network, there are no physical wires to follow. You wasted critical time.", options: [] },
+      failNetworkAsk: { text: "[✖] The network AI recognized your query pattern as anomalous. All your access was revoked.", options: [] },
+      failPasswordGuess: { text: "[✖] Core system uses one-time passwords. Guessing is mathematically impossible.", options: [] },
+      failTimingAttack: { text: "[✖] The system has randomized response delays. Your timing attack failed completely.", options: [] },
+      failInterfacePattern: { text: "[✖] The interface patterns were deliberately misleading traps. You fell for one.", options: [] },
+      failPowerMonitor: { text: "[✖] While monitoring power, you missed the security protocol checking for exactly this behavior.", options: [] },
+      failKeywordSearch: { text: "[✖] Keyword search triggered content filters. The system now knows what you're looking for.", options: [] },
+      failPasswordSniff: { text: "[✖] The password is never transmitted - it's used in a secure enclave. Your sniffing found nothing.", options: [] },
+      failErrorTrigger: { text: "[✖] Error messages are deliberately unhelpful in this system. You learned nothing useful.", options: [] },
+      failWaitForChange: { text: "[✖] While waiting, the system rotated all cryptographic keys. You're back to square one.", options: [] },
+      failLogComparison: { text: "[✖] Log files are sanitized and randomized for security. Your comparisons revealed nothing.", options: [] },
+      failAutoTool: { text: "[✖] The puzzle was designed to detect automated tools. It locked permanently when it detected yours.", options: [] },
+      failRandomAttempt: { text: "[✖] Random attempts triggered the anti-tamper protocol. The system initiated emergency lockdown.", options: [] },
+      failDelay: { text: "[✖] While you delayed, the blackout protocol completed its cycle. The city is now dark.", options: [] },
+      failAbandon: { text: "[✖] Leaving the protocol active allowed it to execute. Mission failed. The blackout begins.", options: [] },
+      divertSuccess: { text: "[✓] Clever move. You've distracted the system briefly with fake update signals. Gained 2 minutes of undisturbed access.", options: [{ text: "Continue deeper", next: "networkEntry" }] }
+    };
+
+    let allowClick = false;
+    let typingInterval;
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function typeWriterEffect(text, elementId, callback) {
+      let i = 0;
+      const speed = 25;
+      const element = document.getElementById(elementId);
+      element.innerHTML = '';
+      allowClick = false;
+
+      if (typingInterval) {
+        clearInterval(typingInterval);
+      }
+
+      const soundInterval = setInterval(() => {
+        if (i < text.length) {
+          playTypingSound();
+        } else {
+          clearInterval(soundInterval);
+        }
+      }, 50);
+
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          clearInterval(soundInterval);
+          if (callback) {
+            allowClick = true;
+            callback();
+          }
+        }
+      }
+      type();
+    }
+
+    function startGame() {
+      document.getElementById('intro').style.display = 'none';
+      document.querySelector('button').style.display = 'none';
+      document.getElementById('story').style.display = 'block';
+      playClickSound();
+      updateLivesDisplay();
+      loadScene('start');
+    }
+
+    function loadScene(sceneId) {
+      const scene = storyFlow[sceneId];
+      document.getElementById('story').innerHTML = '';
+      document.getElementById('options').innerHTML = '';
+      document.getElementById('result').innerText = '';
+      
+      typeWriterEffect(scene.text, 'story', () => {
+        const options = [...scene.options];
+        const correctOptions = options.filter(opt => opt.correct);
+        const wrongOptions = options.filter(opt => !opt.correct);
+        
+        const shuffledCorrect = shuffleArray([...correctOptions]);
+        const shuffledWrong = shuffleArray([...wrongOptions]);
+        
+        const combinedOptions = [...shuffledWrong, ...shuffledCorrect];
+        const finalOptions = shuffleArray(combinedOptions).slice(0, options.length);
+        
+        finalOptions.forEach(option => {
+          const button = document.createElement('button');
+          button.innerText = option.text;
+          button.className = 'option';
+          
+          button.addEventListener('mouseenter', () => {
+            playHoverSound();
+          });
+          
+          button.onclick = () => {
+            if (allowClick) {
+              playClickSound();
+              loadScene(option.next);
+            }
+          };
+          document.getElementById('options').appendChild(button);
+        });
+        
+        if (scene.options.length === 0) {
+          if (sceneId === "shutdownProtocol") {
+            playSuccessSound();
+            document.getElementById('result').innerText = '[✓] MISSION SUCCESS!';
+            document.getElementById('result').classList.add('blinking');
+            document.getElementById('options').innerHTML = '';
+            document.getElementById('restartBtn').style.display = 'none';
+            document.getElementById('homeBtn').style.display = 'block';
+          } else {
+            handleFailure(sceneId); 
+          }
+        }
+      });
+    }
+
+    let lives = 3;
+
+    function updateLivesDisplay() {
+      document.getElementById('lives').innerText = `Remaining Lives: ${lives}`;
+    }
+
+    function restartGame() {
+      if (lives > 0) {
+        document.getElementById('restartBtn').style.display = 'none';
+        document.getElementById('homeBtn').style.display = 'none';
+        document.getElementById('story').style.display = 'block';
+        document.getElementById('result').classList.remove('blinking');
+        playClickSound();
+        loadScene('start');
+      }
+    }
+
+    function handleFailure(sceneId) {
+      playFailSound();
+      document.getElementById('result').innerText = '[✖] MISSION FAILED!';
+      document.getElementById('result').classList.add('blinking');
+      lives--;
+
+      updateLivesDisplay();
+
+      if (lives > 0) {
+        document.getElementById('restartBtn').style.display = 'block';
+        document.getElementById('homeBtn').style.display = 'none';
+      } else {
+        document.getElementById('restartBtn').style.display = 'none';
+        document.getElementById('homeBtn').style.display = 'block';
+        document.getElementById('options').innerHTML = '';
+        document.getElementById('story').innerHTML = 'Your chances are over.\nPlease allow the next participant to play.';
+      }
+    }
+
+    function goToHome() {
+      // Reset game state
+      lives = 3;
+      document.getElementById('result').classList.remove('blinking');
+      document.getElementById('restartBtn').style.display = 'none';
+      document.getElementById('homeBtn').style.display = 'none';
+      document.getElementById('story').style.display = 'none';
+      document.getElementById('lives').innerText = '';
+      document.getElementById('options').innerHTML = '';
+      document.getElementById('result').innerText = '';
+      
+      // Show home screen
+      document.getElementById('intro').style.display = 'block';
+      document.querySelector('button').style.display = 'block';
+      
+      playClickSound();
+    }
+
+  </script>
+</body>
+</html>
